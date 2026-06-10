@@ -2,7 +2,7 @@
 
 ## Endpoint
 
-POST /upload
+POST /extract
 
 ---
 
