@@ -1,45 +1,24 @@
 from fastapi import FastAPI, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 
-import shutil
 
-from app.services.document_service import process_document
+def create_app() -> FastAPI:
+    # Setup (need improvemenr)
+    app = FastAPI(
+        title=settings.APP_NAME,
+        description="Doc Digitalization API",
+        version="1.0.0",
+        docs_url="/docs",
+        redoc_url="/redoc",
+    )
 
-app = FastAPI()
+    # CORS
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.allowed_origins_list,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-@app.post("/extract")
-async def upload_file(file: UploadFile):
-
-    try:
-
-        file_path = f"app/uploads/{file.filename}"
-
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-
-        data = process_document(
-            file_path=file_path,
-            filename=file.filename
-        )
-
-        return {
-            "success": True,
-            "filename": file.filename,
-            "data": data
-        }
-
-    except Exception as e:
-
-        return {
-            "success": False,
-            "error": str(e)
-        }
+app = create_app()
