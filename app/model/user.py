@@ -20,7 +20,7 @@ class User(Base):
     role: Mapped[Role] = mapped_column(SAEnum(Role, name="role_enum", values_callable=lambda x: [e.value for e in x]), nullable=False, default=Role.USER)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
 
-    # Self-referential FK: user -> admin supervisor
+    # user -> admin supervisor
     admin_id: Mapped[Optional[int]] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     created_at: Mapped[datetime] = mapped_column(
