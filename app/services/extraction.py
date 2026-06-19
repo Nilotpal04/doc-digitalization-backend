@@ -56,13 +56,22 @@ def _extract_pdf_text(path: Path) -> str:
             "PDF extraction requires the optional 'pdfplumber' dependency."
         ) from exc
 
-    chunks: list[str] = []
-    with pdfplumber.open(path) as pdf:
-        for page in pdf.pages:
-            page_text = page.extract_text() or ""
-            if page_text:
-                chunks.append(page_text)
-    return "\n".join(chunks)
+    try:
+        chunks: list[str] = []
+
+        with pdfplumber.open(path) as pdf:
+            for page in pdf.pages:
+                page_text = page.extract_text() or ""
+
+                if page_text:
+                    chunks.append(page_text)
+
+        return "\n".join(chunks)
+
+    except Exception:
+        raise RuntimeError(
+            f"Failed to extract text from PDF: {path.name}"
+        )
 
 
 def _extract_image_text(path: Path) -> str:
@@ -74,8 +83,14 @@ def _extract_image_text(path: Path) -> str:
             "Image OCR requires the optional 'pytesseract' and 'Pillow' dependencies."
         ) from exc
 
-    with Image.open(path) as image:
-        return pytesseract.image_to_string(image)
+    try:
+        with Image.open(path) as image:
+            return pytesseract.image_to_string(image)
+
+    except Exception:
+        raise RuntimeError(
+            f"Failed to extract text from image: {path.name}"
+        )
 
 
 def _parse_template_fields(text: str) -> dict:
