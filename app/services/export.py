@@ -91,80 +91,80 @@ class ExcelExporter:
         worksheet.column_dimensions["E"].width = 20
         worksheet.column_dimensions["F"].width = 15
     
-def _populate_rows(self, worksheet):
-    row = 2
+    def _populate_rows(self, worksheet):
+        row = 2
 
-    for document in self.documents:
-        worksheet.cell(row=row, column=1).value = document.id
+        for document in self.documents:
+            worksheet.cell(row=row, column=1).value = document.id
 
-        # Extracted data
-        worksheet.cell(
-            row=row,
-            column=2,
-        ).value = self._format_extracted_data(document.extracted_data)
-        
-        # Column 3 (Original Document)
-        self._insert_document_preview(
-            worksheet=worksheet,
-            row=row,
-            document=document,
-        )
-        
-        # Uploaded By
-        uploaded_by = worksheet.cell(
-            row=row,
-            column=4,
-        )
-
-        uploaded_by.value = document.uploader.username
-        uploaded_by.alignment = Alignment(
-            horizontal="center",
-            vertical="center",
-        )
-        
-        # Uploaded At
-        uploaded_at = worksheet.cell(
-            row=row,
-            column=5,
-        )
-        
-        uploaded_at.value = document.uploaded_at.strftime("%d-%m-%Y %H:%M")
-        uploaded_at.alignment = Alignment(
-            horizontal="center",
-            vertical="center",
-        )
-        
-        # Status
-        status = worksheet.cell(
-            row=row,
-            column=6,
-        )
-        
-        status.value = document.status.value.capitalize()
-        status.alignment = Alignment(
-            horizontal="center",
-            vertical="center",
-        )
-        
-        worksheet.cell(
-            row=row,
-            column=2,
-        ).alignment = Alignment(
-            wrap_text=True,
-            vertical="top",
-        )
-        
-        worksheet.cell(
-            row=row,
-            column=3,
-        ).alignment = Alignment(
-            vertical="top",
-        )
-        
-        worksheet.row_dimensions[row].height = 170
-        
-        row += 1
+            # Extracted data
+            worksheet.cell(
+                row=row,
+                column=2,
+            ).value = self._format_extracted_data(document.extracted_data)
             
+            # Column 3 (Original Document)
+            self._insert_document_preview(
+                worksheet=worksheet,
+                row=row,
+                document=document,
+            )
+            
+            # Uploaded By
+            uploaded_by = worksheet.cell(
+                row=row,
+                column=4,
+            )
+
+            uploaded_by.value = document.uploader.username
+            uploaded_by.alignment = Alignment(
+                horizontal="center",
+                vertical="center",
+            )
+            
+            # Uploaded At
+            uploaded_at = worksheet.cell(
+                row=row,
+                column=5,
+            )
+            
+            uploaded_at.value = document.uploaded_at.strftime("%d-%m-%Y %H:%M")
+            uploaded_at.alignment = Alignment(
+                horizontal="center",
+                vertical="center",
+            )
+            
+            # Status
+            status = worksheet.cell(
+                row=row,
+                column=6,
+            )
+            
+            status.value = document.status.value.capitalize()
+            status.alignment = Alignment(
+                horizontal="center",
+                vertical="center",
+            )
+            
+            worksheet.cell(
+                row=row,
+                column=2,
+            ).alignment = Alignment(
+                wrap_text=True,
+                vertical="top",
+            )
+            
+            worksheet.cell(
+                row=row,
+                column=3,
+            ).alignment = Alignment(
+                vertical="top",
+            )
+            
+            worksheet.row_dimensions[row].height = 170
+            
+            row += 1
+                
     def _format_extracted_data(self, data: dict | None) -> str:
         """
         Convert OCR JSON into a readable multiline string.
