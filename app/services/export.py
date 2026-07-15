@@ -75,5 +75,69 @@ class ExcelExporter:
         worksheet.column_dimensions["F"].width = 15
     
     def _populate_rows(self, worksheet):
-        pass
-    
+        row = 2
+
+        for document in self.documents:
+            worksheet.cell(row=row, column=1).value = document.id
+
+            # Extracted data
+            worksheet.cell(
+                row=row,
+                column=2,
+            ).value = self._format_extracted_data(document.extracted_data)
+            
+            # Column 3 (Original Document)
+            worksheet.cell(row=row, column=3).value = ""
+            
+            # Uploaded By
+            worksheet.cell(
+                row=row,
+                column=4,
+            ).value = document.uploader.username
+            
+            # Uploaded At
+            worksheet.cell(
+                row=row,
+                column=5,
+            ).value = document.uploaded_at.strftime("%d-%m-%Y %H:%M")
+            
+            # Status
+            worksheet.cell(
+                row=row,
+                column=6,
+            ).value = document.status.value.capitalize()
+            
+            worksheet.cell(
+                row=row,
+                column=2,
+            ).alignment = Alignment(
+                wrap_text=True,
+                vertical="top",
+            )
+            
+            worksheet.cell(
+                row=row,
+                column=3,
+            ).alignment = Alignment(
+                vertical="top",
+            )
+            
+            worksheet.row_dimensions[row].height = 120
+            
+            row += 1
+            
+    def _format_extracted_data(self, data: dict | None) -> str:
+        """
+        Convert OCR JSON into a readable multiline string.
+        """
+        
+        if not data:
+            return ""
+        
+        lines = []
+        
+        for key, value in data.items():
+            pretty_key = key.replace("_", " ").title()
+            lines.append(f"{pretty_key}: {value}")
+            
+        return "\n".join(lines)
