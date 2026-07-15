@@ -7,6 +7,12 @@ from app.models.document import Document
 
 from openpyxl.styles import Font, PatternFill, Alignment
 
+from pathlib import Path
+
+import fitz
+
+from openpyxl.drawing.image import Image as ExcelImage
+from PIL import Image
 class ExcelExporter:
     """
     Builds Excel workbooks for document export
@@ -87,7 +93,11 @@ class ExcelExporter:
             ).value = self._format_extracted_data(document.extracted_data)
             
             # Column 3 (Original Document)
-            worksheet.cell(row=row, column=3).value = ""
+            self._insert_document_preview(
+                worksheet=worksheet,
+                row=row,
+                document=document,
+            )
             
             # Uploaded By
             worksheet.cell(
@@ -141,3 +151,45 @@ class ExcelExporter:
             lines.append(f"{pretty_key}: {value}")
             
         return "\n".join(lines)
+    
+    def _insert_document_preview(
+        self,
+        worksheet,
+        row: int,
+        document: Document,
+    ):
+        path = Path(document.file_path)
+        
+        if not path.exists():
+            return
+        
+        suffix = path.suffix.lower()
+        
+        if suffix == ".pdf":
+            self._insert_pdf_preview(
+                worksheet,
+                row,
+                path,
+            )
+        else:
+            self._insert_image(
+                worksheet,
+                row,
+                path,
+            )
+            
+    def _insert_image(
+        self,
+        worksheet,
+        row: int,
+        image_path: Path,
+    ):
+        img = ExcelImage(str(image_path))
+        
+        img.width = 180
+        img.height = 120
+        
+        worksheet.add_image(
+            img,
+            f"C{row}",
+        )
