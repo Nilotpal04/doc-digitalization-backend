@@ -26,6 +26,8 @@ from app.schemas.audit_log import AuditLogResponse
 from fastapi.responses import StreamingResponse
 from app.services.export import ExcelExporter
 
+from sqlalchemy.orm import selectinload
+
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 AdminOrAbove = require_min_role(Role.ADMIN)
@@ -122,6 +124,7 @@ async def list_documents(
 @router.get(
     "/export",
     summary="Export documents to Excel",
+    response_class=StreamingResponse,
 )
 async def export_documents(
     current_user: CurrentUser,
@@ -141,6 +144,11 @@ async def export_documents(
         start_date=start_date,
         end_date=end_date,
     )
+    
+    if not documents:
+        raise NotFoundError(
+            "No documents found for the selected date range."
+        )
 
     exporter = ExcelExporter(documents)
 
@@ -330,7 +338,12 @@ async def _get_accessible_documents(
     start_date: date,
     end_date: date,
 ) -> list[Document]:
-    q = select(Document)
+    q = (
+        select(Document)
+        .options(
+            selectinload(Document.uploader)
+        )
+    )
 
     if current_user.role == Role.ADMIN:
         result = await db.execute(

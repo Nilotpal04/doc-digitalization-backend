@@ -5,7 +5,7 @@ from openpyxl import Workbook
 
 from app.models.document import Document
 
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 
 from pathlib import Path
 
@@ -31,6 +31,8 @@ class ExcelExporter:
         
         self._build_header(worksheet)
         self._populate_rows(worksheet)
+        
+        worksheet.auto_filter.ref = worksheet.dimensions
         
         output = BytesIO()
         workbook.save(output)
@@ -58,7 +60,16 @@ class ExcelExporter:
             bold=True,
             color="FFFFFF",
         )
+        
+        thin = Side(style="thin", color="000000")
 
+        self.border = Border(
+            left=thin,
+            right=thin,
+            top=thin,
+            bottom=thin,
+        )
+        
         for col, title in enumerate(headers, start=1):
             cell = worksheet.cell(row=1, column=col)
 
@@ -80,61 +91,79 @@ class ExcelExporter:
         worksheet.column_dimensions["E"].width = 20
         worksheet.column_dimensions["F"].width = 15
     
-    def _populate_rows(self, worksheet):
-        row = 2
+def _populate_rows(self, worksheet):
+    row = 2
 
-        for document in self.documents:
-            worksheet.cell(row=row, column=1).value = document.id
+    for document in self.documents:
+        worksheet.cell(row=row, column=1).value = document.id
 
-            # Extracted data
-            worksheet.cell(
-                row=row,
-                column=2,
-            ).value = self._format_extracted_data(document.extracted_data)
-            
-            # Column 3 (Original Document)
-            self._insert_document_preview(
-                worksheet=worksheet,
-                row=row,
-                document=document,
-            )
-            
-            # Uploaded By
-            worksheet.cell(
-                row=row,
-                column=4,
-            ).value = document.uploader.username
-            
-            # Uploaded At
-            worksheet.cell(
-                row=row,
-                column=5,
-            ).value = document.uploaded_at.strftime("%d-%m-%Y %H:%M")
-            
-            # Status
-            worksheet.cell(
-                row=row,
-                column=6,
-            ).value = document.status.value.capitalize()
-            
-            worksheet.cell(
-                row=row,
-                column=2,
-            ).alignment = Alignment(
-                wrap_text=True,
-                vertical="top",
-            )
-            
-            worksheet.cell(
-                row=row,
-                column=3,
-            ).alignment = Alignment(
-                vertical="top",
-            )
-            
-            worksheet.row_dimensions[row].height = 120
-            
-            row += 1
+        # Extracted data
+        worksheet.cell(
+            row=row,
+            column=2,
+        ).value = self._format_extracted_data(document.extracted_data)
+        
+        # Column 3 (Original Document)
+        self._insert_document_preview(
+            worksheet=worksheet,
+            row=row,
+            document=document,
+        )
+        
+        # Uploaded By
+        uploaded_by = worksheet.cell(
+            row=row,
+            column=4,
+        )
+
+        uploaded_by.value = document.uploader.username
+        uploaded_by.alignment = Alignment(
+            horizontal="center",
+            vertical="center",
+        )
+        
+        # Uploaded At
+        uploaded_at = worksheet.cell(
+            row=row,
+            column=5,
+        )
+        
+        uploaded_at.value = document.uploaded_at.strftime("%d-%m-%Y %H:%M")
+        uploaded_at.alignment = Alignment(
+            horizontal="center",
+            vertical="center",
+        )
+        
+        # Status
+        status = worksheet.cell(
+            row=row,
+            column=6,
+        )
+        
+        status.value = document.status.value.capitalize()
+        status.alignment = Alignment(
+            horizontal="center",
+            vertical="center",
+        )
+        
+        worksheet.cell(
+            row=row,
+            column=2,
+        ).alignment = Alignment(
+            wrap_text=True,
+            vertical="top",
+        )
+        
+        worksheet.cell(
+            row=row,
+            column=3,
+        ).alignment = Alignment(
+            vertical="top",
+        )
+        
+        worksheet.row_dimensions[row].height = 170
+        
+        row += 1
             
     def _format_extracted_data(self, data: dict | None) -> str:
         """
@@ -186,8 +215,8 @@ class ExcelExporter:
     ):
         img = ExcelImage(str(image_path))
         
-        img.width = 180
-        img.height = 120
+        img.width = 220
+        img.height = 150
         
         worksheet.add_image(
             img,
@@ -224,8 +253,8 @@ class ExcelExporter:
 
             excel_image = ExcelImage(image)
 
-            excel_image.width = 180
-            excel_image.height = 120
+            excel_image.width = 220
+            excel_image.height = 150
 
             worksheet.add_image(
                 excel_image,
