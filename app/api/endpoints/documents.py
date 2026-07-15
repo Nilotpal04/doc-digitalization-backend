@@ -23,6 +23,9 @@ from app.services.extraction import process_document
 from app.core.config import settings
 from app.schemas.audit_log import AuditLogResponse
 
+from fastapi.responses import StreamingResponse
+from app.services.export import ExcelExporter
+
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 AdminOrAbove = require_min_role(Role.ADMIN)
@@ -116,6 +119,46 @@ async def list_documents(
 
     return DocumentListResponse(total=total or 0, page=page, page_size=page_size, items=list(docs))
 
+@router.get(
+    "/export",
+    summary="Export documents to Excel",
+)
+async def export_documents(
+    current_user: CurrentUser,
+    _: Annotated[User, AdminOrAbove],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    start_date: date,
+    end_date: date,
+):
+    if start_date > end_date:
+        raise ValidationError(
+            "start_date cannot be after end_date."
+        )
+
+    documents = await _get_accessible_documents(
+        current_user=current_user,
+        db=db,
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    exporter = ExcelExporter(documents)
+
+    workbook = exporter.build()
+
+    filename = (
+        f"documents_{start_date}_{end_date}.xlsx"
+    )
+
+    return StreamingResponse(
+        workbook,
+        media_type=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        },
+    )
 
 # Get single document
 @router.get("/{doc_id}", response_model=DocumentResponse)
@@ -280,6 +323,54 @@ async def get_audit_log(
     )
     return result.scalars().all()
 
+async def _get_accessible_documents(
+    *,
+    current_user: User,
+    db: AsyncSession,
+    start_date: date,
+    end_date: date,
+) -> list[Document]:
+    q = select(Document)
+
+    if current_user.role == Role.ADMIN:
+        result = await db.execute(
+            select(User.id).where(
+                (User.admin_id == current_user.id)
+                | (User.id == current_user.id)
+            )
+        )
+
+        managed_ids = [row[0] for row in result.all()]
+
+        q = q.where(Document.user_id.in_(managed_ids))
+
+    elif current_user.role == Role.SUPER_ADMIN:
+        pass
+
+    else:
+        raise ForbiddenError("Only admins can export documents.")
+
+    q = q.where(
+        Document.uploaded_at >= datetime.combine(
+            start_date,
+            time.min,
+            tzinfo=timezone.utc,
+        )
+    )
+
+    q = q.where(
+        Document.uploaded_at <= datetime.combine(
+            end_date,
+            time.max,
+            tzinfo=timezone.utc,
+        )
+    )
+
+    q = q.order_by(Document.uploaded_at.asc())
+
+    result = await db.execute(q)
+
+    return list(result.scalars().unique())
 
 # Helpers
 async def _fetch_doc_or_404(doc_id: int, db: AsyncSession) -> Document:
