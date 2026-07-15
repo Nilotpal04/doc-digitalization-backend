@@ -193,3 +193,46 @@ class ExcelExporter:
             img,
             f"C{row}",
         )
+        
+    def _insert_pdf_preview(
+        self,
+        worksheet,
+        row: int,
+        pdf_path: Path,
+    ):
+        """
+        Render the first page of a PDF and insert it into Excel.
+        """
+        try:
+            pdf = fitz.open(pdf_path)
+
+            if len(pdf) == 0:
+                pdf.close()
+                return
+
+            page = pdf.load_page(0)
+
+            matrix = fitz.Matrix(2, 2)
+
+            pix = page.get_pixmap(matrix=matrix)
+
+            image_bytes = pix.tobytes("png")
+
+            pdf.close()
+
+            image = Image.open(BytesIO(image_bytes))
+
+            excel_image = ExcelImage(image)
+
+            excel_image.width = 180
+            excel_image.height = 120
+
+            worksheet.add_image(
+                excel_image,
+                f"C{row}",
+            )
+
+        except Exception:
+            # Skip preview if rendering fails.
+            # The export should still succeed.
+            return
